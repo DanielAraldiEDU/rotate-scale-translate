@@ -366,22 +366,22 @@ void mouseMotion(int x, int y)
     transform.scaleX += deltaX * 0.01f;
     if (transform.scaleX < 0.1f)
       transform.scaleX = 0.1f;
-    if (transform.scaleX > 5.0f)
-      transform.scaleX = 5.0f;
+    if (transform.scaleX > 100.0f)
+      transform.scaleX = 100.0f;
     break;
   case SCALE_Y:
     transform.scaleY += deltaX * 0.01f;
     if (transform.scaleY < 0.1f)
       transform.scaleY = 0.1f;
-    if (transform.scaleY > 5.0f)
-      transform.scaleY = 5.0f;
+    if (transform.scaleY > 100.0f)
+      transform.scaleY = 100.0f;
     break;
   case SCALE_Z:
     transform.scaleZ += deltaX * 0.01f;
     if (transform.scaleZ < 0.1f)
       transform.scaleZ = 0.1f;
-    if (transform.scaleZ > 5.0f)
-      transform.scaleZ = 5.0f;
+    if (transform.scaleZ > 100.0f)
+      transform.scaleZ = 100.0f;
     break;
   case SCALE_UNIFORM:
   {
@@ -393,9 +393,9 @@ void mouseMotion(int x, int y)
     {
       transform.scaleX = transform.scaleY = transform.scaleZ = 0.1f;
     }
-    if (transform.scaleX > 5.0f)
+    if (transform.scaleX > 100.0f)
     {
-      transform.scaleX = transform.scaleY = transform.scaleZ = 5.0f;
+      transform.scaleX = transform.scaleY = transform.scaleZ = 100.0f;
     }
   }
   break;
