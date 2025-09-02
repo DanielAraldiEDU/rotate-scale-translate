@@ -36,7 +36,7 @@ enum TransformMode
 } currentMode;
 
 bool mousePressed = false;
-int lastMouseX, lastMouseY;
+int lastMouseX;
 
 void initOpenGL()
 {
@@ -324,7 +324,6 @@ void mouse(int button, int state, int x, int y)
     {
       mousePressed = true;
       lastMouseX = x;
-      lastMouseY = y;
     }
     else
     {
@@ -339,12 +338,11 @@ void mouseMotion(int x, int y)
     return;
 
   float deltaX = (x - lastMouseX) * 0.5f;
-  float deltaY = (lastMouseY - y) * 0.5f;
 
   switch (currentMode)
   {
   case ROTATION_X:
-    transform.rotateX += deltaY;
+    transform.rotateX += deltaX;
     if (transform.rotateX > 360.0f)
       transform.rotateX -= 360.0f;
     if (transform.rotateX < 0.0f)
@@ -372,7 +370,7 @@ void mouseMotion(int x, int y)
       transform.scaleX = 5.0f;
     break;
   case SCALE_Y:
-    transform.scaleY += deltaY * 0.01f;
+    transform.scaleY += deltaX * 0.01f;
     if (transform.scaleY < 0.1f)
       transform.scaleY = 0.1f;
     if (transform.scaleY > 5.0f)
@@ -405,7 +403,7 @@ void mouseMotion(int x, int y)
     transform.translateX += deltaX * 0.01f;
     break;
   case TRANSLATION_Y:
-    transform.translateY += deltaY * 0.01f;
+    transform.translateY += deltaX * 0.01f;
     break;
   case TRANSLATION_Z:
     transform.translateZ += deltaX * 0.01f;
@@ -413,7 +411,6 @@ void mouseMotion(int x, int y)
   }
 
   lastMouseX = x;
-  lastMouseY = y;
   glutPostRedisplay();
 }
 
@@ -430,7 +427,7 @@ int main(int argc, char **argv)
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
   glutInitWindowSize(windowWidth, windowHeight);
-  glutCreateWindow("Interface OpenGL - Transformacoes 3D");
+  glutCreateWindow("Interface OpenGL - Transformações 3D");
 
   initOpenGL();
 
@@ -440,14 +437,14 @@ int main(int argc, char **argv)
   glutMotionFunc(mouseMotion);
   glutReshapeFunc(reshape);
 
-  std::cout << "=== INTERFACE OPENGL - TRANSFORMACOES 3D ===" << std::endl;
+  std::cout << "=== INTERFACE OPENGL - TRANSFORMAÇÕES 3D ===" << std::endl;
   std::cout << "Controles:" << std::endl;
   std::cout << "1-3: Rotacao X, Y, Z" << std::endl;
   std::cout << "4-6: Escala X, Y, Z" << std::endl;
   std::cout << "7: Escala Uniforme" << std::endl;
-  std::cout << "8-0: Translacao X, Y, Z" << std::endl;
+  std::cout << "8-0: Translação X, Y, Z" << std::endl;
+  std::cout << "R: Reset transformações" << std::endl;
   std::cout << "Mouse: Arraste para ajustar valores" << std::endl;
-  std::cout << "R: Reset transformacoes" << std::endl;
   std::cout << "ESC: Sair" << std::endl;
 
   glutMainLoop();
