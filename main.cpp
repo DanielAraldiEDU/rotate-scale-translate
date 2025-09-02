@@ -1,6 +1,10 @@
 #include <GLUT/glut.h>
 #include <iostream>
 #include <cmath>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 // Variáveis de transformação
 struct Transform
@@ -8,17 +12,17 @@ struct Transform
   float rotateX = 0.0f;
   float rotateY = 0.0f;
   float rotateZ = 0.0f;
-  float scaleX = 1.0f;
-  float scaleY = 1.0f;
-  float scaleZ = 1.0f;
+  float scaleX = 0.5f;
+  float scaleY = 0.5f;
+  float scaleZ = 0.5f;
   float translateX = 0.0f;
   float translateY = 0.0f;
   float translateZ = 0.0f;
 } transform;
 
 // Configurações da janela
-int windowWidth = 800;
-int windowHeight = 600;
+int windowWidth = 1000;
+int windowHeight = 800;
 
 // Controle de interação
 enum TransformMode
@@ -38,102 +42,173 @@ enum TransformMode
 bool mousePressed = false;
 int lastMouseX;
 
+struct ObjModel
+{
+  std::vector<float> vertices;  // x, y, z
+  std::vector<float> texcoords; // u, v
+  std::vector<float> normals;   // nx, ny, nz
+
+  // Cada face é composta por índices para v, vt, vn
+  struct Face
+  {
+    unsigned int v[3];  // índices dos vértices
+    unsigned int vt[3]; // índices das coordenadas de textura
+    unsigned int vn[3]; // índices das normais
+  };
+  std::vector<Face> faces;
+};
+
+ObjModel loadObj(const std::string &filename)
+{
+  ObjModel model;
+
+  std::ifstream file(filename);
+  if (!file.is_open())
+  {
+    std::cerr << "Erro ao abrir o arquivo!" << std::endl;
+  }
+
+  std::string line;
+
+  while (std::getline(file, line))
+  {
+    std::istringstream iss(line);
+    std::string prefix;
+    iss >> prefix;
+
+    if (prefix == "v")
+    {
+      float x, y, z;
+      iss >> x >> y >> z;
+      model.vertices.push_back(x);
+      model.vertices.push_back(y);
+      model.vertices.push_back(z);
+    }
+    else if (prefix == "vt")
+    {
+      float u, v;
+      iss >> u >> v;
+      model.texcoords.push_back(u);
+      model.texcoords.push_back(v);
+    }
+    else if (prefix == "vn")
+    {
+      float nx, ny, nz;
+      iss >> nx >> ny >> nz;
+      model.normals.push_back(nx);
+      model.normals.push_back(ny);
+      model.normals.push_back(nz);
+    }
+    else if (prefix == "f")
+    {
+      std::vector<unsigned int> vIdx, vtIdx, vnIdx;
+      std::string vert;
+      while (iss >> vert)
+      {
+        std::istringstream viss(vert);
+        std::string vStr, vtStr, vnStr;
+        std::getline(viss, vStr, '/');
+        std::getline(viss, vtStr, '/');
+        std::getline(viss, vnStr, '/');
+        vIdx.push_back(vStr.empty() ? 0 : std::stoi(vStr) - 1);
+        vtIdx.push_back(vtStr.empty() ? 0 : std::stoi(vtStr) - 1);
+        vnIdx.push_back(vnStr.empty() ? 0 : std::stoi(vnStr) - 1);
+      }
+      // Triangulação: fan
+      for (size_t i = 1; i + 1 < vIdx.size(); ++i)
+      {
+        ObjModel::Face face;
+        face.v[0] = vIdx[0];
+        face.vt[0] = vtIdx[0];
+        face.vn[0] = vnIdx[0];
+        face.v[1] = vIdx[i];
+        face.vt[1] = vtIdx[i];
+        face.vn[1] = vnIdx[i];
+        face.v[2] = vIdx[i + 1];
+        face.vt[2] = vtIdx[i + 1];
+        face.vn[2] = vnIdx[i + 1];
+        model.faces.push_back(face);
+      }
+    }
+  }
+  return model;
+}
+
+void drawModel(const ObjModel &model)
+{
+  glBegin(GL_TRIANGLES);
+  for (const auto &face : model.faces)
+  {
+    for (int i = 0; i < 3; ++i)
+    {
+      // Normais
+      if (!model.normals.empty())
+      {
+        unsigned int ni = face.vn[i] * 3;
+        glNormal3f(
+            model.normals[ni],
+            model.normals[ni + 1],
+            model.normals[ni + 2]);
+      }
+
+      // Coordenadas de textura
+      if (!model.texcoords.empty())
+      {
+        unsigned int ti = face.vt[i] * 2;
+        glTexCoord2f(
+            model.texcoords[ti],
+            model.texcoords[ti + 1]);
+      }
+
+      // Vértices
+      unsigned int vi = face.v[i] * 3;
+      glVertex3f(
+          model.vertices[vi],
+          model.vertices[vi + 1],
+          model.vertices[vi + 2]);
+    }
+  }
+  glEnd();
+}
+
 void initOpenGL()
 {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
-  glEnable(GL_COLOR_MATERIAL);
 
   // Configuração da luz
-  GLfloat lightPos[] = {2.0f, 2.0f, 2.0f, 1.0f};
-  GLfloat lightAmbient[] = {0.3f, 0.3f, 0.3f, 1.0f};
-  GLfloat lightDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
+  GLfloat lightPos[] = {10.0f, 10.0f, 10.0f, 10.0f};
+  GLfloat lightAmbient[] = {0.1f, 0.1f, 0.1f, 0.1f};
+  GLfloat lightDiffuse[] = {0.1f, 0.1f, 0.1f, 0.1f};
   GLfloat lightSpecular[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
   glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
   glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
   glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
-
-  glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
-}
-
-void drawCube()
-{
-  glBegin(GL_QUADS);
-
-  // Face frontal (vermelha)
-  glColor3f(1.0f, 0.0f, 0.0f);
-  glNormal3f(0.0f, 0.0f, 1.0f);
-  glVertex3f(-0.5f, -0.5f, 0.5f);
-  glVertex3f(0.5f, -0.5f, 0.5f);
-  glVertex3f(0.5f, 0.5f, 0.5f);
-  glVertex3f(-0.5f, 0.5f, 0.5f);
-
-  // Face traseira (verde)
-  glColor3f(0.0f, 1.0f, 0.0f);
-  glNormal3f(0.0f, 0.0f, -1.0f);
-  glVertex3f(-0.5f, -0.5f, -0.5f);
-  glVertex3f(-0.5f, 0.5f, -0.5f);
-  glVertex3f(0.5f, 0.5f, -0.5f);
-  glVertex3f(0.5f, -0.5f, -0.5f);
-
-  // Face superior (azul)
-  glColor3f(0.0f, 0.0f, 1.0f);
-  glNormal3f(0.0f, 1.0f, 0.0f);
-  glVertex3f(-0.5f, 0.5f, -0.5f);
-  glVertex3f(-0.5f, 0.5f, 0.5f);
-  glVertex3f(0.5f, 0.5f, 0.5f);
-  glVertex3f(0.5f, 0.5f, -0.5f);
-
-  // Face inferior (amarela)
-  glColor3f(1.0f, 1.0f, 0.0f);
-  glNormal3f(0.0f, -1.0f, 0.0f);
-  glVertex3f(-0.5f, -0.5f, -0.5f);
-  glVertex3f(0.5f, -0.5f, -0.5f);
-  glVertex3f(0.5f, -0.5f, 0.5f);
-  glVertex3f(-0.5f, -0.5f, 0.5f);
-
-  // Face direita (magenta)
-  glColor3f(1.0f, 0.0f, 1.0f);
-  glNormal3f(1.0f, 0.0f, 0.0f);
-  glVertex3f(0.5f, -0.5f, -0.5f);
-  glVertex3f(0.5f, 0.5f, -0.5f);
-  glVertex3f(0.5f, 0.5f, 0.5f);
-  glVertex3f(0.5f, -0.5f, 0.5f);
-
-  // Face esquerda (ciano)
-  glColor3f(0.0f, 1.0f, 1.0f);
-  glNormal3f(-1.0f, 0.0f, 0.0f);
-  glVertex3f(-0.5f, -0.5f, -0.5f);
-  glVertex3f(-0.5f, -0.5f, 0.5f);
-  glVertex3f(-0.5f, 0.5f, 0.5f);
-  glVertex3f(-0.5f, 0.5f, -0.5f);
-
-  glEnd();
 }
 
 void drawAxes()
 {
   glDisable(GL_LIGHTING);
-  glLineWidth(3.0f);
+  glLineWidth(5.0f);
 
   glBegin(GL_LINES);
   // Eixo X (vermelho)
   glColor3f(1.0f, 0.0f, 0.0f);
   glVertex3f(0.0f, 0.0f, 0.0f);
-  glVertex3f(1.0f, 0.0f, 0.0f);
+  glVertex3f(25.0f, 0.0f, 0.0f);
 
   // Eixo Y (verde)
   glColor3f(0.0f, 1.0f, 0.0f);
   glVertex3f(0.0f, 0.0f, 0.0f);
-  glVertex3f(0.0f, 1.0f, 0.0f);
+  glVertex3f(0.0f, 25.0f, 0.0f);
 
   // Eixo Z (azul)
   glColor3f(0.0f, 0.0f, 1.0f);
   glVertex3f(0.0f, 0.0f, 0.0f);
-  glVertex3f(0.0f, 0.0f, 1.0f);
+  glVertex3f(0.0f, 0.0f, 25.0f);
   glEnd();
 
   glEnable(GL_LIGHTING);
@@ -238,7 +313,7 @@ void display()
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  gluLookAt(3.0, 3.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+  gluLookAt(30.0, 30.0, 50.0, 0.0, 0.0, 0.0, 0.0, 100.0, 0.0);
 
   // Desenhar eixos
   drawAxes();
@@ -258,7 +333,8 @@ void display()
   glScalef(transform.scaleX, transform.scaleY, transform.scaleZ);
 
   // Desenhar objeto
-  drawCube();
+  ObjModel model = loadObj("./assets/porsche.obj");
+  drawModel(model);
 
   glPopMatrix();
 
@@ -306,7 +382,7 @@ void keyboard(unsigned char key, int x, int y)
   case 'R':
     // Reset todas as transformações
     transform.rotateX = transform.rotateY = transform.rotateZ = 0.0f;
-    transform.scaleX = transform.scaleY = transform.scaleZ = 1.0f;
+    transform.scaleX = transform.scaleY = transform.scaleZ = 0.5f;
     transform.translateX = transform.translateY = transform.translateZ = 0.0f;
     break;
   case 27: // ESC
@@ -400,13 +476,13 @@ void mouseMotion(int x, int y)
   }
   break;
   case TRANSLATION_X:
-    transform.translateX += deltaX * 0.01f;
+    transform.translateX += deltaX * 0.1f;
     break;
   case TRANSLATION_Y:
-    transform.translateY += deltaX * 0.01f;
+    transform.translateY += deltaX * 0.1f;
     break;
   case TRANSLATION_Z:
-    transform.translateZ += deltaX * 0.01f;
+    transform.translateZ += deltaX * 0.1f;
     break;
   }
 
