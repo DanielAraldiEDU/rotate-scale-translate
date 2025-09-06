@@ -82,3 +82,9 @@ make
 ```bash
 make clean
 ```
+
+- For clean, generate new executable and run program, you can run:
+
+```bash
+make run
+```
