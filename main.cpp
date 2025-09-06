@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sstream>
 
-// Variáveis de transformação
 struct Transform
 {
   float rotateX = 0.0f;
@@ -20,11 +19,9 @@ struct Transform
   float translateZ = 0.0f;
 } transform;
 
-// Configurações da janela
 int windowWidth = 1000;
 int windowHeight = 800;
 
-// Controle de interação
 enum TransformMode
 {
   ROTATION_X,
@@ -48,12 +45,12 @@ struct ObjModel
   std::vector<float> texcoords; // u, v
   std::vector<float> normals;   // nx, ny, nz
 
-  // Cada face é composta por índices para v, vt, vn
+  // Each face is composed of indices for v, vt, vn
   struct Face
   {
-    unsigned int v[3];  // índices dos vértices
-    unsigned int vt[3]; // índices das coordenadas de textura
-    unsigned int vn[3]; // índices das normais
+    unsigned int v[3];  // vertex indices
+    unsigned int vt[3]; // texture coordinate indices
+    unsigned int vn[3]; // normal indices
   };
   std::vector<Face> faces;
 };
@@ -70,7 +67,6 @@ ObjModel loadObj(const std::string &filename)
 
   std::string line;
 
-  // Para calcular bounding box
   float minX = std::numeric_limits<float>::max();
   float minY = std::numeric_limits<float>::max();
   float minZ = std::numeric_limits<float>::max();
@@ -93,13 +89,19 @@ ObjModel loadObj(const std::string &filename)
       tempVertices.push_back(x);
       tempVertices.push_back(y);
       tempVertices.push_back(z);
-      // Atualiza bounding box
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (z < minZ) minZ = z;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-      if (z > maxZ) maxZ = z;
+
+      if (x < minX)
+        minX = x;
+      if (y < minY)
+        minY = y;
+      if (z < minZ)
+        minZ = z;
+      if (x > maxX)
+        maxX = x;
+      if (y > maxY)
+        maxY = y;
+      if (z > maxZ)
+        maxZ = z;
     }
     else if (prefix == "vt")
     {
@@ -131,7 +133,7 @@ ObjModel loadObj(const std::string &filename)
         vtIdx.push_back(vtStr.empty() ? 0 : std::stoi(vtStr) - 1);
         vnIdx.push_back(vnStr.empty() ? 0 : std::stoi(vnStr) - 1);
       }
-      // Triangulação: fan
+
       for (size_t i = 1; i + 1 < vIdx.size(); ++i)
       {
         ObjModel::Face face;
@@ -149,8 +151,6 @@ ObjModel loadObj(const std::string &filename)
     }
   }
 
-
-  // Normaliza os vértices para que o maior eixo seja 1 e o centro fique na origem
   float sizeX = maxX - minX;
   float sizeY = maxY - minY;
   float sizeZ = maxZ - minZ;
@@ -159,16 +159,17 @@ ObjModel loadObj(const std::string &filename)
   float centerY = (maxY + minY) / 2.0f;
   float centerZ = (maxZ + minZ) / 2.0f;
 
-  float desiredSize = 75.0f; // Novo tamanho padrão do maior eixo
+  float desiredSize = 75.0f;
   for (size_t i = 0; i < tempVertices.size(); i += 3)
   {
     float x = tempVertices[i];
     float y = tempVertices[i + 1];
     float z = tempVertices[i + 2];
-    // Centraliza e escala para que o maior eixo seja desiredSize
+
     x = (x - centerX) / (maxSize / 2.0f) * (desiredSize / 2.0f);
     y = (y - centerY) / (maxSize / 2.0f) * (desiredSize / 2.0f);
     z = (z - centerZ) / (maxSize / 2.0f) * (desiredSize / 2.0f);
+
     model.vertices.push_back(x);
     model.vertices.push_back(y);
     model.vertices.push_back(z);
@@ -184,7 +185,6 @@ void drawModel(const ObjModel &model)
   {
     for (int i = 0; i < 3; ++i)
     {
-      // Normais
       if (!model.normals.empty())
       {
         unsigned int ni = face.vn[i] * 3;
@@ -194,7 +194,6 @@ void drawModel(const ObjModel &model)
             model.normals[ni + 2]);
       }
 
-      // Coordenadas de textura
       if (!model.texcoords.empty())
       {
         unsigned int ti = face.vt[i] * 2;
@@ -203,7 +202,6 @@ void drawModel(const ObjModel &model)
             model.texcoords[ti + 1]);
       }
 
-      // Vértices
       unsigned int vi = face.v[i] * 3;
       glVertex3f(
           model.vertices[vi],
@@ -220,11 +218,8 @@ void initOpenGL()
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
 
-  // Configuração da luz
   GLfloat lightPos[] = {10.0f, 10.0f, 10.0f, 1.0f};
-  // Luz ambiente mais forte
   GLfloat lightAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
-  // Luz difusa mais forte
   GLfloat lightDiffuse[] = {0.5f, 0.5f, 0.5f, 1.0f};
   GLfloat lightSpecular[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -240,17 +235,17 @@ void drawAxes()
   glLineWidth(5.0f);
 
   glBegin(GL_LINES);
-  // Eixo X (vermelho)
+  // Axis X (red)
   glColor3f(1.0f, 0.0f, 0.0f);
   glVertex3f(0.0f, 0.0f, 0.0f);
   glVertex3f(25.0f, 0.0f, 0.0f);
 
-  // Eixo Y (verde)
+  // Axis Y (green)
   glColor3f(0.0f, 1.0f, 0.0f);
   glVertex3f(0.0f, 0.0f, 0.0f);
   glVertex3f(0.0f, 25.0f, 0.0f);
 
-  // Eixo Z (azul)
+  // Axis Z (blue)
   glColor3f(0.0f, 0.0f, 1.0f);
   glVertex3f(0.0f, 0.0f, 0.0f);
   glVertex3f(0.0f, 0.0f, 25.0f);
@@ -273,7 +268,7 @@ void displayText()
 
   glColor3f(1.0f, 1.0f, 1.0f);
 
-  // Instruções
+  // Instructions
   const char *instructions[] = {
       "CONTROLES:",
       "1-3: Rotacao X, Y, Z",
@@ -301,7 +296,7 @@ void displayText()
     y -= 20;
   }
 
-  // Modo atual
+  // Current mode
   glColor3f(0.0f, 1.0f, 0.0f);
   glRasterPos2f(10, y);
   for (const char *c = modes[currentMode]; *c != '\0'; c++)
@@ -309,7 +304,7 @@ void displayText()
     glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *c);
   }
 
-  // Valores atuais
+  // Current values
   char buffer[256];
   y -= 40;
   glColor3f(1.0f, 1.0f, 0.0f);
@@ -351,7 +346,7 @@ void display()
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  // Configurar câmera
+  // Configure camera
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPerspective(45.0, (double)windowWidth / windowHeight, 0.1, 100.0);
@@ -360,30 +355,29 @@ void display()
   glLoadIdentity();
   gluLookAt(30.0, 30.0, 50.0, 0.0, 0.0, 0.0, 0.0, 100.0, 0.0);
 
-  // Desenhar eixos
   drawAxes();
 
-  // Aplicar transformações (ordem importante!)
+  // Apply transformations
   glPushMatrix();
 
-  // 1. Translação (glTranslate)
+  // Translate
   glTranslatef(transform.translateX, transform.translateY, transform.translateZ);
 
-  // 2. Rotação (glRotate)
+  // Rotate
   glRotatef(transform.rotateX, 1.0f, 0.0f, 0.0f);
   glRotatef(transform.rotateY, 0.0f, 1.0f, 0.0f);
   glRotatef(transform.rotateZ, 0.0f, 0.0f, 1.0f);
 
-  // 3. Escala (glScale)
+  // Scale
   glScalef(transform.scaleX, transform.scaleY, transform.scaleZ);
 
-  // Desenhar objeto
-  ObjModel model = loadObj("./assets/elepham.obj");
+  // Load and draw model
+  ObjModel model = loadObj("./assets/porsche.obj");
   drawModel(model);
 
   glPopMatrix();
 
-  // Desenhar interface
+  // Display interface
   displayText();
 
   glutSwapBuffers();
@@ -424,8 +418,7 @@ void keyboard(unsigned char key, int x, int y)
     currentMode = TRANSLATION_Z;
     break;
   case 'r':
-  case 'R':
-    // Reset todas as transformações
+  case 'R': // Reset
     transform.rotateX = transform.rotateY = transform.rotateZ = 0.0f;
     transform.scaleX = transform.scaleY = transform.scaleZ = 0.5f;
     transform.translateX = transform.translateY = transform.translateZ = 0.0f;
