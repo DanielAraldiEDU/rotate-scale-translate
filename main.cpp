@@ -70,6 +70,16 @@ ObjModel loadObj(const std::string &filename)
 
   std::string line;
 
+  // Para calcular bounding box
+  float minX = std::numeric_limits<float>::max();
+  float minY = std::numeric_limits<float>::max();
+  float minZ = std::numeric_limits<float>::max();
+  float maxX = std::numeric_limits<float>::lowest();
+  float maxY = std::numeric_limits<float>::lowest();
+  float maxZ = std::numeric_limits<float>::lowest();
+
+  std::vector<float> tempVertices;
+
   while (std::getline(file, line))
   {
     std::istringstream iss(line);
@@ -80,9 +90,16 @@ ObjModel loadObj(const std::string &filename)
     {
       float x, y, z;
       iss >> x >> y >> z;
-      model.vertices.push_back(x);
-      model.vertices.push_back(y);
-      model.vertices.push_back(z);
+      tempVertices.push_back(x);
+      tempVertices.push_back(y);
+      tempVertices.push_back(z);
+      // Atualiza bounding box
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (z < minZ) minZ = z;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+      if (z > maxZ) maxZ = z;
     }
     else if (prefix == "vt")
     {
@@ -131,6 +148,32 @@ ObjModel loadObj(const std::string &filename)
       }
     }
   }
+
+
+  // Normaliza os vértices para que o maior eixo seja 1 e o centro fique na origem
+  float sizeX = maxX - minX;
+  float sizeY = maxY - minY;
+  float sizeZ = maxZ - minZ;
+  float maxSize = std::max(std::max(sizeX, sizeY), sizeZ);
+  float centerX = (maxX + minX) / 2.0f;
+  float centerY = (maxY + minY) / 2.0f;
+  float centerZ = (maxZ + minZ) / 2.0f;
+
+  float desiredSize = 75.0f; // Novo tamanho padrão do maior eixo
+  for (size_t i = 0; i < tempVertices.size(); i += 3)
+  {
+    float x = tempVertices[i];
+    float y = tempVertices[i + 1];
+    float z = tempVertices[i + 2];
+    // Centraliza e escala para que o maior eixo seja desiredSize
+    x = (x - centerX) / (maxSize / 2.0f) * (desiredSize / 2.0f);
+    y = (y - centerY) / (maxSize / 2.0f) * (desiredSize / 2.0f);
+    z = (z - centerZ) / (maxSize / 2.0f) * (desiredSize / 2.0f);
+    model.vertices.push_back(x);
+    model.vertices.push_back(y);
+    model.vertices.push_back(z);
+  }
+
   return model;
 }
 
@@ -178,9 +221,11 @@ void initOpenGL()
   glEnable(GL_LIGHT0);
 
   // Configuração da luz
-  GLfloat lightPos[] = {10.0f, 10.0f, 10.0f, 10.0f};
-  GLfloat lightAmbient[] = {0.1f, 0.1f, 0.1f, 0.1f};
-  GLfloat lightDiffuse[] = {0.1f, 0.1f, 0.1f, 0.1f};
+  GLfloat lightPos[] = {10.0f, 10.0f, 10.0f, 1.0f};
+  // Luz ambiente mais forte
+  GLfloat lightAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
+  // Luz difusa mais forte
+  GLfloat lightDiffuse[] = {0.5f, 0.5f, 0.5f, 1.0f};
   GLfloat lightSpecular[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
   glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
@@ -333,7 +378,7 @@ void display()
   glScalef(transform.scaleX, transform.scaleY, transform.scaleZ);
 
   // Desenhar objeto
-  ObjModel model = loadObj("./assets/porsche.obj");
+  ObjModel model = loadObj("./assets/elepham.obj");
   drawModel(model);
 
   glPopMatrix();
